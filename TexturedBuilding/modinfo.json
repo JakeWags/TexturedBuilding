@@ -1,0 +1,14 @@
+{
+  "type": "code",
+  "modid": "texturedbuilding",
+  "name": "Textured Building",
+  "authors": ["GrompGilberton"],
+  "description": "Adds a textured building keybind with a Random placement mode.",
+  "version": "1.0.0",
+  "dependencies": {
+    "game": "1.21.x" 
+  },
+   "requiredOnClient": true,
+  "requiredOnServer": false,
+  "side": "client"
+}
