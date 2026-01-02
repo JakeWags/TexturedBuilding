@@ -13,7 +13,6 @@ namespace TexturedBuilding
 
         public override void Start(ICoreAPI api)
         {
-            // Load Config
             try
             {
                 Config = api.LoadModConfig<TBConfig>(ConfigName);
@@ -35,7 +34,6 @@ namespace TexturedBuilding
             clientApi = api;
             randomMode = new RandomMode(api);
 
-            // 1. Register Keybinding (R key default)
             api.Input.RegisterHotKey(
                 "texturedbuilding-toggle",
                 "Textured Building: Toggle Mode",
@@ -44,31 +42,33 @@ namespace TexturedBuilding
             );
             api.Input.SetHotKeyHandler("texturedbuilding-toggle", OnToggleKey);
 
-            // 2. Register the Mouse Event
-            // FIX: Use api.Event.MouseDown instead of api.Input.InWorldMouseEvent
             api.Event.MouseDown += OnMouseDown;
+
+            Config.RandomModeEnabled = false;
         }
 
         private void OnMouseDown(MouseEvent e)
         {
-            // We only care about Right Clicks (Building/Interaction)
             if (e.Button != EnumMouseButton.Right) return;
-
-            // Only run if our mode is enabled
             if (Config == null || !Config.RandomModeEnabled) return;
 
-            // Optional: Ensure we are looking at something in the world (prevents swapping when clicking UI)
-            if (clientApi.World.Player.CurrentBlockSelection == null) return;
+            IClientPlayer player = clientApi.World.Player;
 
-            // Get a random slot index
+            // Check if the player is currently holding a BLOCK
+            ItemSlot heldSlot = player.InventoryManager.ActiveHotbarSlot;
+            if (heldSlot.Empty || heldSlot.Itemstack.Class != EnumItemClass.Block)
+            {
+                return;
+            }
+
+            // Optional: Check if we are actually aiming at a block to place against
+            if (player.CurrentBlockSelection == null) return;
+
             int newSlotIndex = randomMode.GetRandomizedHotbarSlot();
 
             if (newSlotIndex != -1)
             {
-                // Switch the active hotbar slot immediately
-                clientApi.World.Player.InventoryManager.ActiveHotbarSlotNumber = newSlotIndex;
-
-                // The game continues to process this click, now using the new item
+                player.InventoryManager.ActiveHotbarSlotNumber = newSlotIndex;
             }
         }
 
@@ -78,19 +78,15 @@ namespace TexturedBuilding
 
             Config.RandomModeEnabled = !Config.RandomModeEnabled;
             clientApi.ShowChatMessage("Random Mode: " + (Config.RandomModeEnabled ? "ON" : "OFF"));
-
-            // Save the state so it persists across restarts
             clientApi.StoreModConfig(Config, ConfigName);
 
             return true;
         }
 
-        // Cleanup events when the mod unloads/game closes
         public override void Dispose()
         {
             if (clientApi != null)
             {
-                // FIX: Unsubscribe from the correct event
                 clientApi.Event.MouseDown -= OnMouseDown;
             }
             base.Dispose();

@@ -6,7 +6,7 @@
   "description": "Adds a textured building keybind with a Random placement mode.",
   "version": "1.0.0",
   "dependencies": {
-    "game": "1.21.x" 
+    "game": "1.21.0" 
   },
    "requiredOnClient": true,
   "requiredOnServer": false,
