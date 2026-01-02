@@ -9,67 +9,68 @@ namespace TexturedBuilding
     {
         private readonly ICoreClientAPI capi;
         private readonly Random rand;
+        private readonly TexturedBuildingModSystem modSystem;
 
         public RandomMode(ICoreClientAPI api)
         {
             this.capi = api;
             this.rand = new Random();
+            this.modSystem = api.ModLoader.GetModSystem<TexturedBuildingModSystem>();
         }
 
-        // Checks if a specific item slot is allowed to be used in Random Mode
         public bool IsItemAllowed(ItemSlot slot)
         {
             if (slot.Empty) return false;
             if (slot.Itemstack.Class != EnumItemClass.Block) return false;
 
-            var config = TexturedBuildingModSystem.Config;
-            if (config == null) return true;
-
             Block block = slot.Itemstack.Block;
 
+            if (modSystem.Settings.DebugMode)
+            {
+                capi.Logger.Notification($"[TB] Checking item: {block.Code}");
+                capi.Logger.Notification($"[TB] AllowClay setting: {modSystem.Settings.AllowClay}");
+                capi.Logger.Notification($"[TB] AllowFood setting: {modSystem.Settings.AllowFood}");
+                capi.Logger.Notification($"[TB] AllowPlants setting: {modSystem.Settings.AllowPlants}");
+            }
+
             // Food Check
-            if (!config.AllowFood && slot.Itemstack.Collectible.NutritionProps != null)
+            if (!modSystem.Settings.AllowFood && slot.Itemstack.Collectible.NutritionProps != null)
                 return false;
 
-            // Block Entity Check (Chests, Signs, etc.)
-            if (!config.AllowBlockEntities && block.EntityClass != null)
+            // Block Entity Check
+            if (!modSystem.Settings.AllowBlockEntities && block.EntityClass != null)
                 return false;
 
             // Plant Check
-            if (!config.AllowPlants && block.BlockMaterial == EnumBlockMaterial.Plant)
+            if (!modSystem.Settings.AllowPlants && block.BlockMaterial == EnumBlockMaterial.Plant)
                 return false;
 
             // Liquid Check
-            if (!config.AllowLiquids && block.BlockMaterial == EnumBlockMaterial.Liquid)
+            if (!modSystem.Settings.AllowLiquids && block.BlockMaterial == EnumBlockMaterial.Liquid)
                 return false;
 
             // Clay & Pottery Check
-            // Filters out "rawclay" and specific pottery keywords.
-            // We do NOT filter "bricks" or "shingles" so users can still build with those.
-            if (!config.AllowClay)
+            if (!modSystem.Settings.AllowClay)
             {
                 string path = block.Code.Path;
 
                 if (string.IsNullOrEmpty(path))
                     return true;
 
-                if (config.DebugMode)
+                if (modSystem.Settings.DebugMode)
                 {
                     capi.Logger.Notification($"[TB] Checking clay/pottery filter for item: {block.Code}");
                     capi.Logger.Notification($"[TB] Item path: {path}");
                 }
 
-                // Strewn Straw contains 'raw' so we explicitly allow it here
                 if (path.Contains("strawbedding"))
                     return true;
 
-                // rawclay BLOCK should be allowed
                 if (path.Contains("rawclay"))
                     return true;
 
                 if (path.Contains("raw") ||
                     path.Contains("fired") ||
-                    // explicit blocks
                     path.Contains("crock") ||
                     path.Contains("bowl") ||
                     path.Contains("planter") ||
@@ -80,7 +81,7 @@ namespace TexturedBuilding
                     path.StartsWith("item-shingle") ||
                     path.Contains("mold"))
                 {
-                    if (config.DebugMode)
+                    if (modSystem.Settings.DebugMode)
                     {
                         capi.Logger.Notification($"[TB] Block filtered out by clay/pottery rule: {block.Code}");
                     }
@@ -98,7 +99,6 @@ namespace TexturedBuilding
             IInventory hotbar = player.InventoryManager.GetHotbarInventory();
             List<int> validSlotIndices = new List<int>();
 
-            // Find all valid candidates
             for (int i = 0; i < 10; i++)
             {
                 ItemSlot checkSlot = hotbar[i];
@@ -107,7 +107,7 @@ namespace TexturedBuilding
                 {
                     validSlotIndices.Add(i);
                 }
-                else if (TexturedBuildingModSystem.Config.DebugMode && !checkSlot.Empty)
+                else if (modSystem.Settings.DebugMode && !checkSlot.Empty)
                 {
                     capi.Logger.Notification($"[TB] Slot {i} skipped: {checkSlot.Itemstack.Collectible.Code}");
                 }

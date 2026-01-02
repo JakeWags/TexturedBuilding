@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "class": "TexturedBuilding.TexturedBuildingSettings",
+  "settings": [
+    {
+      "code": "AllowFood",
+      "type": "boolean",
+      "name": "AllowFood",
+      "comment": "If enabled, food items (pies, cheese) can be selected.",
+      "default": false,
+      "clientSide": true
+    },
+    {
+      "code": "AllowPlants",
+      "type": "boolean",
+      "name": "AllowPlants",
+      "comment": "If enabled, saplings and flowers can be selected.",
+      "default": false,
+      "clientSide": true
+    },
+    {
+      "code": "AllowBlockEntities",
+      "type": "boolean",
+      "name": "AllowBlockEntities",
+      "comment": "If enabled, chests, signs, and machines can be selected.",
+      "default": false,
+      "clientSide": true
+    },
+    {
+      "code": "AllowLiquids",
+      "type": "boolean",
+      "name": "AllowLiquids",
+      "comment": "If enabled, liquid blocks can be selected.",
+      "default": false,
+      "clientSide": true
+    },
+    {
+      "code": "AllowClay",
+      "type": "boolean",
+      "name": "AllowClay",
+      "comment": "If enabled, raw clay, bowls, crocks, and planters can be selected.",
+      "default": false,
+      "clientSide": true
+    },
+    {
+      "code": "DebugMode",
+      "type": "boolean",
+      "name": "DebugMode",
+      "comment": "Log selection logic to client-debug.txt.",
+      "default": false,
+      "clientSide": true
+    }
+  ]
+}
