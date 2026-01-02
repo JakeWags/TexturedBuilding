@@ -44,42 +44,53 @@ namespace TexturedBuilding
 
             api.Event.MouseDown += OnMouseDown;
 
-            Config.RandomModeEnabled = false;
+            Config.RandomModeEnabled = false; // Start disabled
         }
 
         private void OnMouseDown(MouseEvent e)
         {
+            // Basic checks
             if (e.Button != EnumMouseButton.Right) return;
-            if (Config == null || !Config.RandomModeEnabled) return;
+            if (clientApi.IsGamePaused) return;
+            if (!Config.RandomModeEnabled) return;
+            if (Config == null) return;
 
             IClientPlayer player = clientApi.World.Player;
-
-            // Check if the player is currently holding a BLOCK
             ItemSlot heldSlot = player.InventoryManager.ActiveHotbarSlot;
-            if (heldSlot.Empty || heldSlot.Itemstack.Class != EnumItemClass.Block)
+
+            // Check if holding anything at all
+            if (heldSlot.Empty) return;
+
+            // If the item currently in hand is NOT allowed in the random rotation (e.g. Chest, Flower),
+            // we assume the user wants to place THAT specific item. 
+            // We exit here, letting the default game behavior take over.
+            if (!randomMode.IsItemAllowed(heldSlot))
             {
+                if (Config.DebugMode)
+                    clientApi.Logger.Notification($"[TB] Ignored randomization. Holding excluded item: {heldSlot.Itemstack.Collectible.Code}");
                 return;
             }
 
-            // Optional: Check if we are actually aiming at a block to place against
+            // Ensure we are actually aiming at a block
             if (player.CurrentBlockSelection == null) return;
 
+            // Perform the Swap
             int newSlotIndex = randomMode.GetRandomizedHotbarSlot();
 
             if (newSlotIndex != -1)
             {
                 player.InventoryManager.ActiveHotbarSlotNumber = newSlotIndex;
+
+                if (Config.DebugMode)
+                    clientApi.Logger.Notification($"[TB] Swapped to slot {newSlotIndex}");
             }
         }
 
         private bool OnToggleKey(KeyCombination t1)
         {
-            if (Config == null) return false;
-
             Config.RandomModeEnabled = !Config.RandomModeEnabled;
-            clientApi.ShowChatMessage("Random Mode: " + (Config.RandomModeEnabled ? "ON" : "OFF"));
-            clientApi.StoreModConfig(Config, ConfigName);
-
+            string status = Config.RandomModeEnabled ? "ON" : "OFF";
+            clientApi.ShowChatMessage($"Random Placement Mode: {status}");
             return true;
         }
 
