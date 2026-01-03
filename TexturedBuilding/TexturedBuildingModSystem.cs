@@ -6,23 +6,13 @@ using Vintagestory.API.Config;
 
 namespace TexturedBuilding
 {
-    public class TexturedBuildingSettings
-    {
-        public bool AllowFood { get; set; } = false;
-        public bool AllowPlants { get; set; } = false;
-        public bool AllowBlockEntities { get; set; } = false;
-        public bool AllowLiquids { get; set; } = false;
-        public bool AllowClay { get; set; } = false;
-        public bool DebugMode { get; set; } = false;
-    }
-
     public class TexturedBuildingModSystem : ModSystem
     {
         public TexturedBuildingSettings Settings { get; set; } = new();
         public bool RandomModeEnabled { get; set; } = false;
 
         private ICoreClientAPI? clientApi;
-        private RandomMode? randomMode;
+        private PlacementMode? currentMode;
 
         public override void Start(ICoreAPI api)
         {
@@ -62,7 +52,9 @@ namespace TexturedBuilding
         public override void StartClientSide(ICoreClientAPI api)
         {
             clientApi = api;
-            randomMode = new RandomMode(api);
+
+            // Initialize with RandomMode as the default
+            currentMode = new RandomMode(api);
 
             api.Input.RegisterHotKey("texturedbuilding-toggle", "Textured Building: Toggle Mode", GlKeys.R, HotkeyType.CharacterControls);
             api.Input.SetHotKeyHandler("texturedbuilding-toggle", OnToggleKey);
@@ -76,14 +68,14 @@ namespace TexturedBuilding
             if (e.Button != EnumMouseButton.Right) return;
             if (clientApi == null || clientApi.IsGamePaused) return;
             if (!RandomModeEnabled) return;
-            if (randomMode == null) return;
+            if (currentMode == null) return;
 
             IClientPlayer player = clientApi.World.Player;
             ItemSlot heldSlot = player.InventoryManager.ActiveHotbarSlot;
 
             if (heldSlot.Empty) return;
 
-            if (!randomMode.IsItemAllowed(heldSlot))
+            if (!currentMode.IsItemAllowed(heldSlot))
             {
                 if (Settings.DebugMode)
                     clientApi.Logger.Notification($"[TB] Ignored randomization. Holding excluded item: {heldSlot.Itemstack.Collectible.Code}");
@@ -92,7 +84,7 @@ namespace TexturedBuilding
 
             if (player.CurrentBlockSelection == null) return;
 
-            int newSlotIndex = randomMode.GetRandomizedHotbarSlot();
+            int newSlotIndex = currentMode.GetPlacementSlot();
 
             if (newSlotIndex != -1)
             {

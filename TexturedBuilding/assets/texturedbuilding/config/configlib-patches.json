@@ -3,6 +3,30 @@
   "class": "TexturedBuilding.TexturedBuildingSettings",
   "settings": [
     {
+        "code": "Whitelist",
+        "type": "string",
+        "name": "Whitelist",
+        "comment": "Comma-separated list of block codes to allow for selection. Supports wildcards (*). Behavior depends on WhitelistOnly setting.",
+        "default": "",
+        "clientSide": true
+    },
+    {
+      "code": "WhitelistOnly",
+      "type": "boolean",
+      "name": "WhitelistOnly",
+      "comment": "If enabled, ONLY blocks in the whitelist are allowed (strict mode). If disabled, whitelist items skip other filters (permissive mode).",
+      "default": false,
+      "clientSide": true
+    },
+    {
+      "code": "Blacklist",
+      "type": "string",
+      "name": "Blacklist",
+      "comment": "Comma-separated list of block codes to disallow for selection. Supports wildcards (*). Always applied regardless of WhitelistOnly setting.",
+      "default": "",
+      "clientSide": true
+    },
+    {
       "code": "AllowFood",
       "type": "boolean",
       "name": "AllowFood",
