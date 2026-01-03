@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TexturedBuilding
 {
@@ -16,6 +12,7 @@ namespace TexturedBuilding
         public bool DebugMode { get; set; } = false;
 
         public String Whitelist { get; set; } = "";
+        public bool WhitelistOnly { get; set; } = false;
 
         public String Blacklist { get; set; } = "";
     }
