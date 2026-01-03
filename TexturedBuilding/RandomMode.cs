@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Util;
 
 namespace TexturedBuilding
 {
@@ -28,9 +29,36 @@ namespace TexturedBuilding
             if (modSystem.Settings.DebugMode)
             {
                 capi.Logger.Notification($"[TB] Checking item: {block.Code}");
-                capi.Logger.Notification($"[TB] AllowClay setting: {modSystem.Settings.AllowClay}");
-                capi.Logger.Notification($"[TB] AllowFood setting: {modSystem.Settings.AllowFood}");
-                capi.Logger.Notification($"[TB] AllowPlants setting: {modSystem.Settings.AllowPlants}");
+            }
+
+            // Blacklist
+            if (modSystem.Settings.Blacklist.Length > 0)
+            {
+                String[] blacklist = modSystem.Settings.Blacklist.Split(','); // optimize this by saving the split string in Settings rather than doing it here
+
+                if (blacklist.Contains(block.Code.ToString()))
+                {
+                    if (modSystem.Settings.DebugMode)
+                    {
+                        capi.Logger.Notification($"[TB] Item blocked by blacklist: {block.Code.Path}");
+                    }
+                    return false;
+                }
+            }
+
+            // Whitelist
+            if (modSystem.Settings.Whitelist.Length > 0)
+            {
+                String[] whitelist = modSystem.Settings.Whitelist.Split(','); // optimize this by saving the split string in Settings rather than doing it here
+
+                if (whitelist.Contains(block.Code.ToString()))
+                {
+                    if (modSystem.Settings.DebugMode)
+                    {
+                        capi.Logger.Notification($"[TB] Item allowed by whitelist: {block.Code.Path}");
+                    }
+                    return true;
+                }
             }
 
             // Food Check
@@ -57,12 +85,6 @@ namespace TexturedBuilding
                 if (string.IsNullOrEmpty(path))
                     return true;
 
-                if (modSystem.Settings.DebugMode)
-                {
-                    capi.Logger.Notification($"[TB] Checking clay/pottery filter for item: {block.Code}");
-                    capi.Logger.Notification($"[TB] Item path: {path}");
-                }
-
                 if (path.Contains("strawbedding"))
                     return true;
 
@@ -81,11 +103,6 @@ namespace TexturedBuilding
                     path.StartsWith("item-shingle") ||
                     path.Contains("mold"))
                 {
-                    if (modSystem.Settings.DebugMode)
-                    {
-                        capi.Logger.Notification($"[TB] Block filtered out by clay/pottery rule: {block.Code}");
-                    }
-
                     return false;
                 }
             }
@@ -98,6 +115,12 @@ namespace TexturedBuilding
             IClientPlayer player = capi.World.Player;
             IInventory hotbar = player.InventoryManager.GetHotbarInventory();
             List<int> validSlotIndices = new List<int>();
+
+            if (modSystem.Settings.DebugMode)
+            {
+                capi.Logger.Notification($"[TB] Whitelist: {modSystem.Settings.Whitelist}");
+                capi.Logger.Notification($"[TB] Blacklist: {modSystem.Settings.Blacklist}");
+            }
 
             for (int i = 0; i < 10; i++)
             {

@@ -3,6 +3,22 @@
   "class": "TexturedBuilding.TexturedBuildingSettings",
   "settings": [
     {
+        "code": "Whitelist",
+        "type": "string",
+        "name": "Whitelist",
+        "comment": "Comma-Separated list of block codes to allow for selection, overruling filters. Leave empty to allow all blocks that pass the other filters.",
+        "default": "",
+        "clientSide": true
+    },
+    {
+      "code": "Blacklist",
+      "type": "string",
+      "name": "Blacklist",
+      "comment": "Comma-Separated list of block codes to disallow for selection, overruling filters.",
+      "default": "",
+      "clientSide": true
+    },
+    {
       "code": "AllowFood",
       "type": "boolean",
       "name": "AllowFood",
