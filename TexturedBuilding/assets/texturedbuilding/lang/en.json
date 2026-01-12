@@ -1,5 +1,5 @@
 {
   "texturedbuilding:mode-random": "Random",
-  "texturedbuilding:key-toggle": "Toggle Placement Mode",
-  "prefix-key-texturedbuilding-toggle": "Textured Building: Toggle Mode"
+  "prefix-key-texturedbuilding-toggle": "Textured Building: Toggle Random Mode",
+  "prefix-key-texturedbuilding-inventory": "Textured Building: Toggle Inventory Mode"
 }
