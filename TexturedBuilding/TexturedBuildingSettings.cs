@@ -11,6 +11,7 @@ namespace TexturedBuilding
         public bool AllowLiquids { get; set; } = false;
         public bool AllowClay { get; set; } = false;
         public bool DebugMode { get; set; } = false;
+        public bool UseEntireInventory { get; set; } = false;
 
         // Raw strings from config
         private string _whitelist = "";

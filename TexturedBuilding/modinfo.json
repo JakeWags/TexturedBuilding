@@ -3,12 +3,11 @@
   "modid": "texturedbuilding",
   "name": "Textured Building",
   "authors": ["GrompGilberton"],
-  "description": "Adds a textured building keybind with a Random placement mode.",
-  "version": "1.1.0",
+  "description": "Adds a textured building keybind with a Random placement mode. Works client-side only for basic hotbar randomization. Install on both client and server to unlock full inventory scanning feature.",
+  "version": "1.2.1",
   "dependencies": {
     "game": "1.21.0"
   },
-   "requiredOnClient": true,
-  "requiredOnServer": false,
-  "side": "client"
+  "requiredOnClient": true,
+  "requiredOnServer": false
 }
