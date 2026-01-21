@@ -53,13 +53,11 @@ namespace TexturedBuilding
             yPos += 10;
             ElementBounds resetBounds = ElementBounds.Fixed(10, yPos, 100, 30);
             ElementBounds saveBounds = ElementBounds.Fixed(120, yPos, 100, 30);
-            ElementBounds configLibBounds = ElementBounds.Fixed(230, yPos, 150, 30);
-            ElementBounds closeBounds = ElementBounds.Fixed(390, yPos, 100, 30);
+            ElementBounds closeBounds = ElementBounds.Fixed(230, yPos, 100, 30);
 
             SingleComposer
                 .AddSmallButton("Reset All", OnResetClicked, resetBounds, EnumButtonStyle.Normal, "reset-button")
                 .AddSmallButton("Save", OnSaveClicked, saveBounds, EnumButtonStyle.Normal, "save-button")
-                .AddSmallButton("ConfigLib Settings", OnConfigLibClicked, configLibBounds, EnumButtonStyle.Normal, "configlib-button")
                 .AddSmallButton("Close", OnCloseClicked, closeBounds, EnumButtonStyle.Normal, "close-button");
 
             SingleComposer.EndChildElements().Compose();
@@ -150,21 +148,14 @@ namespace TexturedBuilding
         {
             // Save settings to file
             modSystem.SaveHotbarSettings();
-            capi.ShowChatMessage("Hotbar configuration saved");
-            return true;
-        }
 
-        private bool OnConfigLibClicked()
-        {
-            // Open ConfigLib settings if available
-            if (capi.ModLoader.IsModEnabled("configlib"))
+            // Refresh hotbar overlay if random mode is active
+            if (modSystem.RandomModeEnabled)
             {
-                capi.SendChatMessage("/config texturedbuilding");
+                modSystem.UpdateHotbarOverlay();
             }
-            else
-            {
-                capi.ShowChatMessage("ConfigLib not installed");
-            }
+
+            capi.ShowChatMessage("Hotbar configuration saved");
             return true;
         }
 
