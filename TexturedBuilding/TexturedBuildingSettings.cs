@@ -12,6 +12,7 @@ namespace TexturedBuilding
         public bool AllowClay { get; set; } = false;
         public bool DebugMode { get; set; } = false;
         public bool UseEntireInventory { get; set; } = false;
+        public bool EnableClickAndHold { get; set; } = true;
 
         // Raw strings from config
         private string _whitelist = "";
