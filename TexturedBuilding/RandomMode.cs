@@ -65,11 +65,12 @@ namespace TexturedBuilding
             for (int i = 0; i < 10; i++)
             {
                 ItemSlot checkSlot = hotbar[i];
+
                 if (IsItemAllowed(checkSlot))
                 {
                     validSlots.Add(new InventorySlotInfo(hotbar, i));
                 }
-                else if (modSystem.Settings.DebugMode && !checkSlot.Empty)
+                else if (modSystem.Settings.DebugMode)
                 {
                     capi.Logger.Notification($"[TB] Slot {i} skipped: {checkSlot.Itemstack.Collectible.Code}");
                 }
@@ -92,6 +93,10 @@ namespace TexturedBuilding
             for (int i = 0; i < inventory.Count; i++)
             {
                 ItemSlot checkSlot = inventory[i];
+
+                // Early exit for empty slots
+                if (checkSlot.Empty) continue;
+
                 if (IsItemAllowed(checkSlot))
                 {
                     validSlots.Add(new InventorySlotInfo(inventory, i));

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -11,6 +12,9 @@ namespace TexturedBuilding
     {
         protected readonly ICoreClientAPI capi;
         protected readonly TexturedBuildingModSystem modSystem;
+
+        // Cache compiled regex patterns for performance
+        private readonly Dictionary<string, Regex> regexCache = new Dictionary<string, Regex>();
 
         public PlacementMode(ICoreClientAPI api)
         {
@@ -32,7 +36,7 @@ namespace TexturedBuilding
         }
 
         // Checks if a block code matches any pattern in an array
-        // Supports wildcards using *
+        // Supports wildcards using * - now with regex caching for performance
         protected bool MatchesAnyPattern(string blockCode, string[] patterns)
         {
             if (patterns == null || patterns.Length == 0) return false;
@@ -46,8 +50,16 @@ namespace TexturedBuilding
                 {
                     try
                     {
-                        string regexPattern = WildcardToRegex(pattern);
-                        if (Regex.IsMatch(blockCode, regexPattern))
+                        // Check cache first
+                        if (!regexCache.TryGetValue(pattern, out Regex regex))
+                        {
+                            // Compile and cache the regex
+                            string regexPattern = WildcardToRegex(pattern);
+                            regex = new Regex(regexPattern, RegexOptions.Compiled);
+                            regexCache[pattern] = regex;
+                        }
+
+                        if (regex.IsMatch(blockCode))
                         {
                             return true;
                         }
@@ -72,6 +84,7 @@ namespace TexturedBuilding
 
             return false;
         }
+
 
         // Checks if a block is a food block (pies, meals, cheese, etc.)
         protected bool IsFoodBlock(Block block)
@@ -136,6 +149,7 @@ namespace TexturedBuilding
         // Determines if an item in a slot is allowed based on all configured filters
         public bool IsItemAllowed(ItemSlot slot)
         {
+            // Early exit for empty slots
             if (slot.Empty) return false;
             if (slot.Itemstack.Class != EnumItemClass.Block) return false;
 

@@ -246,7 +246,17 @@ namespace TexturedBuilding
                 }
 
                 PerformRandomization();
-                lastPlacedPos = currentPos.Copy();
+
+                // Reuse BlockPos object to reduce allocations
+                if (lastPlacedPos == null)
+                {
+                    lastPlacedPos = currentPos.Copy();
+                }
+                else
+                {
+                    lastPlacedPos.Set(currentPos);
+                }
+
                 lastPlacementTime = clientApi.World.ElapsedMilliseconds;
             }
         }
@@ -272,7 +282,17 @@ namespace TexturedBuilding
             IClientPlayer player = clientApi.World.Player;
             if (player.CurrentBlockSelection != null)
             {
-                lastPlacedPos = player.CurrentBlockSelection.Position.Copy();
+                // Reuse or create BlockPos object
+                BlockPos currentPos = player.CurrentBlockSelection.Position;
+                if (lastPlacedPos == null)
+                {
+                    lastPlacedPos = currentPos.Copy();
+                }
+                else
+                {
+                    lastPlacedPos.Set(currentPos);
+                }
+
                 lastPlacementTime = clientApi.World.ElapsedMilliseconds;
 
                 if (Settings.DebugMode)
