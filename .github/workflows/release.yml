@@ -1,0 +1,87 @@
+name: Release Build
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Resolve mod version
+        id: version
+        run: |
+          MOD_VERSION=$(jq -r '.version' TexturedBuilding/modinfo.json)
+          echo "Mod version: $MOD_VERSION"
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+            TAG_VERSION="${TAG#v}"
+            if [ "$TAG_VERSION" != "$MOD_VERSION" ]; then
+              echo "::error::Release tag '$TAG' (version $TAG_VERSION) does not match modinfo.json version '$MOD_VERSION'. Bump modinfo.json before releasing."
+              exit 1
+            fi
+          fi
+
+          echo "version=$MOD_VERSION" >> "$GITHUB_OUTPUT"
+
+      # Vintage Story doesn't publish its API as a NuGet package, so the build
+      # needs the actual game files. The dedicated-server package is much
+      # smaller than the client and ships the same VintagestoryAPI.dll /
+      # VintagestoryLib.dll / core mod assemblies this project references.
+      - name: Download Vintage Story game files
+        run: |
+          VS_VERSION=$(curl -sf https://api.vintagestory.at/lateststable.txt)
+          echo "Using Vintage Story $VS_VERSION"
+          curl -sfL -o vs_server.tar.gz "https://cdn.vintagestory.at/gamefiles/stable/vs_server_linux-x64_${VS_VERSION}.tar.gz"
+          mkdir -p "$HOME/vs"
+          tar -xzf vs_server.tar.gz -C "$HOME/vs"
+          echo "VINTAGE_STORY=$HOME/vs" >> "$GITHUB_ENV"
+
+      # configlib is only referenced for compile-time type checking
+      # (Private=False, it isn't bundled), so always building against
+      # its latest ModDB release is fine and keeps this self-maintaining.
+      - name: Download configlib
+        run: |
+          CONFIGLIB_URL=$(curl -sf https://mods.vintagestory.at/api/mod/configlib | jq -r '.mod.releases[0].mainfile')
+          echo "Using configlib from $CONFIGLIB_URL"
+          curl -sfL -o configlib.zip "$CONFIGLIB_URL"
+          mkdir -p "$HOME/configlib"
+          unzip -oq configlib.zip -d "$HOME/configlib"
+          echo "CONFIGLIB_PATH=$HOME/configlib/configlib.dll" >> "$GITHUB_ENV"
+
+      - name: Build and package
+        run: dotnet run --project ZZCakeBuild/CakeBuild.csproj -- --configuration=Release
+
+      - name: Rename release artifact
+        id: package
+        run: |
+          SRC="Releases/texturedbuilding_${{ steps.version.outputs.version }}.zip"
+          DEST="Releases/TexturedBuilding_v${{ steps.version.outputs.version }}.zip"
+          mv "$SRC" "$DEST"
+          echo "path=$DEST" >> "$GITHUB_OUTPUT"
+          echo "name=TexturedBuilding_v${{ steps.version.outputs.version }}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to GitHub release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.package.outputs.path }}" --clobber
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.name }}
+          path: ${{ steps.package.outputs.path }}
