@@ -149,12 +149,6 @@ namespace TexturedBuilding
             // Save settings to file
             modSystem.SaveHotbarSettings();
 
-            // Refresh hotbar overlay if random mode is active
-            if (modSystem.RandomModeEnabled)
-            {
-                modSystem.UpdateHotbarOverlay();
-            }
-
             capi.ShowChatMessage("Hotbar configuration saved");
             return true;
         }
