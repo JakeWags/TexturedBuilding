@@ -261,7 +261,7 @@ namespace TexturedBuilding
             }
 
             // Liquid Check
-            if (!modSystem.Settings.AllowLiquids && block.BlockMaterial == EnumBlockMaterial.Liquid)
+            if (!modSystem.Settings.AllowLiquids && (block.BlockMaterial == EnumBlockMaterial.Water || block.BlockMaterial == EnumBlockMaterial.Lava))
             {
                 if (modSystem.Settings.DebugMode)
                 {
