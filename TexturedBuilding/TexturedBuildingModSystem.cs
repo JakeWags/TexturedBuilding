@@ -404,6 +404,14 @@ namespace TexturedBuilding
 
             if (heldSlot.Empty) return;
 
+            int activeHotbarSlot = player.InventoryManager.ActiveHotbarSlotNumber;
+            if (activeHotbarSlot >= 0 && activeHotbarSlot < HotbarSettings.Slots.Length && !HotbarSettings.Slots[activeHotbarSlot].Enabled)
+            {
+                if (Settings.DebugMode)
+                    clientApi.Logger.Notification($"[TB] Ignored randomization. Active slot {activeHotbarSlot} is disabled.");
+                return;
+            }
+
             if (!currentMode.IsItemAllowed(heldSlot))
             {
                 if (Settings.DebugMode)
