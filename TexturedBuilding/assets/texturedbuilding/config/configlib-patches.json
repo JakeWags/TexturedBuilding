@@ -67,6 +67,14 @@
       "clientSide": true
     },
     {
+      "code": "EnableClickAndHold",
+      "type": "boolean",
+      "name": "EnableClickAndHold",
+      "comment": "If enabled, randomization occurs on every block placement when holding right-click. If disabled, randomization only occurs on initial click.",
+      "default": true,
+      "clientSide": true
+    },
+    {
       "code": "DebugMode",
       "type": "boolean",
       "name": "DebugMode",
