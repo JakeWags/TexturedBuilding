@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -20,15 +21,24 @@ namespace TexturedBuilding
         public override int GetPlacementSlot()
         {
             IClientPlayer player = capi.World.Player;
-            List<InventorySlotInfo> validSlots = new List<InventorySlotInfo>();
+            List<WeightedSlotInfo> validSlots = new List<WeightedSlotInfo>();
 
             if (modSystem.Settings.DebugMode)
             {
                 capi.Logger.Notification($"[TB] UseEntireInventory: {modSystem.Settings.UseEntireInventory}");
                 capi.Logger.Notification($"[TB] Server has mod: {modSystem.ServerModAvailable}");
-                capi.Logger.Notification($"[TB] Whitelist: {modSystem.Settings.Whitelist}");
-                capi.Logger.Notification($"[TB] WhitelistOnly: {modSystem.Settings.WhitelistOnly}");
-                capi.Logger.Notification($"[TB] Blacklist: {modSystem.Settings.Blacklist}");
+            }
+
+            // Get enabled slot configurations
+            var enabledSlots = modSystem.HotbarSettings.GetEnabledSlots();
+
+            if (enabledSlots.Length == 0)
+            {
+                if (modSystem.Settings.DebugMode)
+                {
+                    capi.Logger.Warning("[TB] No hotbar slots enabled in configuration");
+                }
+                return -1;
             }
 
             // Check if UseEntireInventory is enabled AND server has the mod
@@ -44,16 +54,16 @@ namespace TexturedBuilding
                 }
                 else
                 {
-                    // Scan all inventories
-                    ScanInventoryForValidItems(player.InventoryManager.GetOwnInventory(GlobalConstants.hotBarInvClassName), validSlots);
-                    ScanInventoryForValidItems(player.InventoryManager.GetOwnInventory(GlobalConstants.backpackInvClassName), validSlots);
-                    ScanInventoryForValidItems(player.InventoryManager.GetOwnInventory(GlobalConstants.characterInvClassName), validSlots);
+                    // Scan all inventories, but only for enabled hotbar slots
+                    ScanInventoryForValidItems(player.InventoryManager.GetOwnInventory(GlobalConstants.hotBarInvClassName), validSlots, enabledSlots);
+                    ScanInventoryForValidItems(player.InventoryManager.GetOwnInventory(GlobalConstants.backpackInvClassName), validSlots, null);
+                    ScanInventoryForValidItems(player.InventoryManager.GetOwnInventory(GlobalConstants.characterInvClassName), validSlots, null);
 
                     if (validSlots.Count > 0)
                     {
-                        int randomIndex = rand.Next(validSlots.Count);
-                        InventorySlotInfo selected = validSlots[randomIndex];
-                        return SwapToHotbar(player, selected);
+                        int selectedIndex = WeightedRandom(validSlots);
+                        WeightedSlotInfo selected = validSlots[selectedIndex];
+                        return SwapToHotbar(player, selected.SlotInfo);
                     }
 
                     return -1;
@@ -62,48 +72,104 @@ namespace TexturedBuilding
 
             // Hotbar-only mode (default or fallback)
             IInventory hotbar = player.InventoryManager.GetHotbarInventory();
-            for (int i = 0; i < 10; i++)
+
+            // Only check enabled slots
+            foreach (var (slotIndex, weight) in enabledSlots)
             {
-                ItemSlot checkSlot = hotbar[i];
+                ItemSlot checkSlot = hotbar[slotIndex];
 
                 if (IsItemAllowed(checkSlot))
                 {
-                    validSlots.Add(new InventorySlotInfo(hotbar, i));
+                    validSlots.Add(new WeightedSlotInfo(
+                        new InventorySlotInfo(hotbar, slotIndex),
+                        weight
+                    ));
                 }
                 else if (modSystem.Settings.DebugMode)
                 {
-                    capi.Logger.Notification($"[TB] Slot {i} skipped: {checkSlot.Itemstack.Collectible.Code}");
+                    string itemName = checkSlot.Empty ? "empty" : checkSlot.Itemstack.Collectible.Code.ToString();
+                    capi.Logger.Notification($"[TB] Slot {slotIndex} skipped: {itemName}");
                 }
             }
 
             if (validSlots.Count > 0)
             {
-                int randomIndex = rand.Next(validSlots.Count);
-                return validSlots[randomIndex].SlotIndex;
+                int selectedIndex = WeightedRandom(validSlots);
+                return validSlots[selectedIndex].SlotInfo.SlotIndex;
             }
 
             return -1;
         }
 
+        private int WeightedRandom(List<WeightedSlotInfo> slots)
+        {
+            int totalWeight = slots.Sum(s => s.Weight);
+            int randomValue = rand.Next(totalWeight);
+            int cumulative = 0;
+
+            for (int i = 0; i < slots.Count; i++)
+            {
+                cumulative += slots[i].Weight;
+                if (randomValue < cumulative)
+                {
+                    return i;
+                }
+            }
+
+            return slots.Count - 1; // Fallback
+        }
+
         // Scans an inventory and adds valid items to the list
-        private void ScanInventoryForValidItems(IInventory inventory, List<InventorySlotInfo> validSlots)
+        private void ScanInventoryForValidItems(
+            IInventory inventory,
+            List<WeightedSlotInfo> validSlots,
+            (int slotIndex, int weight)[]? enabledSlots)
         {
             if (inventory == null) return;
 
-            for (int i = 0; i < inventory.Count; i++)
+            // If this is the hotbar and we have enabled slot restrictions, only check those slots
+            if (enabledSlots != null && inventory.ClassName == GlobalConstants.hotBarInvClassName)
             {
-                ItemSlot checkSlot = inventory[i];
-
-                // Early exit for empty slots
-                if (checkSlot.Empty) continue;
-
-                if (IsItemAllowed(checkSlot))
+                foreach (var (slotIndex, weight) in enabledSlots)
                 {
-                    validSlots.Add(new InventorySlotInfo(inventory, i));
+                    if (slotIndex >= inventory.Count) continue;
 
-                    if (modSystem.Settings.DebugMode)
+                    ItemSlot checkSlot = inventory[slotIndex];
+                    if (checkSlot.Empty) continue;
+
+                    if (IsItemAllowed(checkSlot))
                     {
-                        capi.Logger.Notification($"[TB] Found valid item in {inventory.ClassName}[{i}]: {checkSlot.Itemstack.Collectible.Code}");
+                        validSlots.Add(new WeightedSlotInfo(
+                            new InventorySlotInfo(inventory, slotIndex),
+                            weight
+                        ));
+
+                        if (modSystem.Settings.DebugMode)
+                        {
+                            capi.Logger.Notification($"[TB] Found valid item in {inventory.ClassName}[{slotIndex}]: {checkSlot.Itemstack.Collectible.Code} (weight: {weight})");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // For non-hotbar inventories, scan all slots with default weight
+                for (int i = 0; i < inventory.Count; i++)
+                {
+                    ItemSlot checkSlot = inventory[i];
+                    if (checkSlot.Empty) continue;
+
+                    if (IsItemAllowed(checkSlot))
+                    {
+                        validSlots.Add(new WeightedSlotInfo(
+                            new InventorySlotInfo(inventory, i),
+                            1 // Default weight for non-hotbar items
+                        ));
+
+                        if (modSystem.Settings.DebugMode)
+                        {
+                            capi.Logger.Notification($"[TB] Found valid item in {inventory.ClassName}[{i}]: {checkSlot.Itemstack.Collectible.Code}");
+                        }
                     }
                 }
             }
@@ -153,6 +219,18 @@ namespace TexturedBuilding
             {
                 Inventory = inventory;
                 SlotIndex = slotIndex;
+            }
+        }
+
+        private class WeightedSlotInfo
+        {
+            public InventorySlotInfo SlotInfo { get; }
+            public int Weight { get; }
+
+            public WeightedSlotInfo(InventorySlotInfo slotInfo, int weight)
+            {
+                SlotInfo = slotInfo;
+                Weight = weight;
             }
         }
     }

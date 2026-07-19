@@ -12,6 +12,11 @@ namespace TexturedBuilding
         public TexturedBuildingSettings Settings { get; set; } = new();
         public bool RandomModeEnabled { get; set; } = false;
         public bool ServerModAvailable { get; private set; } = false;
+        public HotbarSlotSettings HotbarSettings { get; private set; } = new();
+
+        private HotbarConfigDialog? configDialog;
+
+        private const string HotbarSettingsFilename = "texturedbuilding_hotbar.json";
 
         private ICoreClientAPI? clientApi;
         private PlacementMode? currentMode;
@@ -104,8 +109,17 @@ namespace TexturedBuilding
             api.Input.RegisterHotKey("texturedbuilding-inventory", "Textured Building: Toggle Inventory Mode", GlKeys.T, HotkeyType.CharacterControls, ctrlPressed: true);
             api.Input.SetHotKeyHandler("texturedbuilding-inventory", OnToggleInventoryMode);
 
+            api.Input.RegisterHotKey("texturedbuilding-config", "Textured Building: Open Config", GlKeys.U, HotkeyType.GUIOrOtherControls);
+            api.Input.SetHotKeyHandler("texturedbuilding-config", OnOpenConfig);
+
             api.Event.MouseDown += OnMouseDown;
             api.Event.MouseUp += OnMouseUp;
+
+            // Load hotbar settings
+            LoadHotbarSettings();
+
+            // Initialize config dialog
+            configDialog = new HotbarConfigDialog(api, this);
 
             // Register game tick listener for click-and-hold detection
             gameTickListenerId = api.Event.RegisterGameTickListener(OnGameTick, 50); // Check every 50ms
@@ -115,6 +129,71 @@ namespace TexturedBuilding
             lastPlacementTime = 0;
 
             clientApi.Logger.Notification("[TexturedBuilding] Client system loaded");
+        }
+
+        private bool OnOpenConfig(KeyCombination t1)
+        {
+            if (configDialog == null) return false;
+
+            if (configDialog.IsOpened())
+            {
+                configDialog.TryClose();
+            }
+            else
+            {
+                configDialog.TryOpen();
+            }
+            return true;
+        }
+
+        public void LoadHotbarSettings()
+        {
+            if (clientApi == null) return;
+
+            try
+            {
+                string path = System.IO.Path.Combine(GamePaths.DataPath, "ModConfig", HotbarSettingsFilename);
+
+                if (System.IO.File.Exists(path))
+                {
+                    string json = System.IO.File.ReadAllText(path);
+                    var loaded = Newtonsoft.Json.JsonConvert.DeserializeObject<HotbarSlotSettings>(json);
+                    if (loaded != null)
+                    {
+                        HotbarSettings = loaded;
+                        clientApi.Logger.Notification("[TB] Loaded hotbar settings");
+                    }
+                }
+                else
+                {
+                    clientApi.Logger.Notification("[TB] No hotbar settings file found, using defaults");
+                }
+            }
+            catch (Exception ex)
+            {
+                clientApi.Logger.Error($"[TB] Failed to load hotbar settings: {ex.Message}");
+            }
+        }
+
+        public void SaveHotbarSettings()
+        {
+            if (clientApi == null) return;
+
+            try
+            {
+                string dirPath = System.IO.Path.Combine(GamePaths.DataPath, "ModConfig");
+                System.IO.Directory.CreateDirectory(dirPath);
+
+                string path = System.IO.Path.Combine(dirPath, HotbarSettingsFilename);
+                string json = Newtonsoft.Json.JsonConvert.SerializeObject(HotbarSettings, Newtonsoft.Json.Formatting.Indented);
+                System.IO.File.WriteAllText(path, json);
+
+                clientApi.Logger.Notification("[TB] Saved hotbar settings");
+            }
+            catch (Exception ex)
+            {
+                clientApi.Logger.Error($"[TB] Failed to save hotbar settings: {ex.Message}");
+            }
         }
 
         private void CheckServerModAvailability()
@@ -398,6 +477,8 @@ namespace TexturedBuilding
 
         public override void Dispose()
         {
+            SaveHotbarSettings();
+
             if (clientApi != null)
             {
                 clientApi.Event.MouseDown -= OnMouseDown;
