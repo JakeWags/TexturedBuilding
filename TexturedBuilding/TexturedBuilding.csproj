@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <!-- Defaults to the local dev copy; CI overrides this via the CONFIGLIB_PATH env var. -->
-  <PropertyGroup Condition="'$(ConfigLibPath)' == ''">
-    <ConfigLibPath>..\..\..\..\Downloads\configlib_1.10.12\configlib.dll</ConfigLibPath>
+  <PropertyGroup Condition="'$(CONFIGLIB_PATH)' == ''">
+    <CONFIGLIB_PATH>..\..\..\..\Downloads\configlib_1.10.12\configlib.dll</CONFIGLIB_PATH>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <Reference Include="configlib">
-      <HintPath>$(ConfigLibPath)</HintPath>
+      <HintPath>$(CONFIGLIB_PATH)</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="VintagestoryAPI">
